@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import type { FrameType } from "@/lib/constants";
+import { FRAME_CONFIG, IMAGE_FILTERS, type FrameType, type ImageFilter } from "@/lib/constants";
 import FrameGallery from "@/components/frame-gallery";
 import Editor from "@/components/editor";
 import AppSidebar from "@/components/app-sidebar";
@@ -25,28 +25,35 @@ export default function Home() {
   const [captionSize, setCaptionSize] = React.useState(24);
   const [zoom, setZoom] = React.useState(1);
   const [position, setPosition] = React.useState({ x: 0, y: 0 });
+  const [imageFilter, setImageFilter] = React.useState<ImageFilter>("original");
   const [activeView, setActiveView] = React.useState('generate');
 
   const handleImageUpload = (file: File) => {
+    if (!file.type.startsWith("image/")) return;
+
     const reader = new FileReader();
-    reader.onload = (e) => {
-      setUploadedImage(e.target?.result as string);
+    reader.onload = () => {
+      if (typeof reader.result !== "string") return;
+      setUploadedImage(reader.result);
       setZoom(1);
       setPosition({ x: 0, y: 0 });
     };
     reader.readAsDataURL(file);
   };
-  
+
+  const loadImage = (src: string) => new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("The selected image could not be loaded."));
+    image.src = src;
+  });
+
   const generateFrameDataUrl = async () => {
     if (!uploadedImage) return null;
 
-    const {FRAME_CONFIG} = await import("@/lib/constants");
     const canvas = document.createElement("canvas");
     const frame = FRAME_CONFIG[activeFrameType];
-    const originalImage = new Image();
-    originalImage.src = uploadedImage;
-
-    await new Promise(resolve => originalImage.onload = resolve);
+    const originalImage = await loadImage(uploadedImage);
 
     canvas.width = frame.print.width;
     canvas.height = frame.print.height;
@@ -85,7 +92,9 @@ export default function Home() {
     const dx = imageAreaX + (imageArea.width - dWidth) / 2 + position.x;
     const dy = imageAreaY + (imageArea.height - dHeight) / 2 + position.y;
 
+    ctx.filter = IMAGE_FILTERS[imageFilter].value;
     ctx.drawImage(originalImage, dx, dy, dWidth, dHeight);
+    ctx.filter = "none";
     ctx.restore();
 
     if (caption) {
@@ -102,11 +111,16 @@ export default function Home() {
 
 
   const handleAddFrame = async () => {
-    const imageSrc = await generateFrameDataUrl();
+    let imageSrc: string | null;
+    try {
+      imageSrc = await generateFrameDataUrl();
+    } catch {
+      return;
+    }
     if (!imageSrc) return;
 
     const newFrame: GeneratedFrame = {
-      id: new Date().toISOString(),
+      id: globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`,
       imageSrc: imageSrc,
       frameType: activeFrameType,
       caption: caption,
@@ -116,7 +130,12 @@ export default function Home() {
   };
 
   const handleDownloadCurrentFrame = async () => {
-    const imageSrc = await generateFrameDataUrl();
+    let imageSrc: string | null;
+    try {
+      imageSrc = await generateFrameDataUrl();
+    } catch {
+      return;
+    }
     if (!imageSrc) return;
     
     const link = document.createElement('a');
@@ -129,7 +148,7 @@ export default function Home() {
 
 
   const handleRemoveSelectedFrames = (ids: string[]) => {
-    setFrames(frames.filter(frame => !ids.includes(frame.id)));
+    setFrames(prevFrames => prevFrames.filter(frame => !ids.includes(frame.id)));
   };
 
   const handleReset = () => {
@@ -138,6 +157,7 @@ export default function Home() {
     setCaptionSize(24);
     setZoom(1);
     setPosition({ x: 0, y: 0 });
+    setImageFilter("original");
   }
 
   return (
@@ -167,6 +187,8 @@ export default function Home() {
                 setZoom={setZoom}
                 position={position}
                 setPosition={setPosition}
+                imageFilter={imageFilter}
+                setImageFilter={setImageFilter}
               />
               <FrameGallery
                 frames={frames}

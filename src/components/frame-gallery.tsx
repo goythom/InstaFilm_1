@@ -2,7 +2,8 @@
 
 import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
-import { Download, Trash2, Image as ImageIcon } from "lucide-react";
+import { FRAME_CONFIG } from "@/lib/constants";
+import { Download, Trash2 } from "lucide-react";
 import type { GeneratedFrame } from "@/app/page";
 import * as React from "react";
 import { ScrollArea } from "./ui/scroll-area";
@@ -15,20 +16,20 @@ interface FrameGalleryProps {
 export default function FrameGallery({ frames, onRemoveSelected }: FrameGalleryProps) {
     const [selectedFrames, setSelectedFrames] = React.useState<string[]>([]);
 
-    const handleDownload = (imageSrc: string) => {
+    const handleDownload = (imageSrc: string, filename: string) => {
         const link = document.createElement("a");
         link.href = imageSrc;
-        link.download = "instant-frame.png";
+        link.download = filename;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
     };
 
     const handleDownloadSelected = () => {
-        selectedFrames.forEach(frameId => {
+        selectedFrames.forEach((frameId, index) => {
             const frame = frames.find(f => f.id === frameId);
             if (frame) {
-                handleDownload(frame.imageSrc);
+            handleDownload(frame.imageSrc, `instant-frame-${index + 1}.png`);
             }
         });
     }
@@ -74,11 +75,15 @@ export default function FrameGallery({ frames, onRemoveSelected }: FrameGalleryP
                                                 type="checkbox"
                                                 className="form-checkbox h-5 w-5 text-accent bg-background border-border rounded focus:ring-accent"
                                                 checked={selectedFrames.includes(frame.id)}
+                                                onClick={(event) => event.stopPropagation()}
                                                 onChange={() => toggleFrameSelection(frame.id)}
                                             />
                                         </div>
-                                        <div className={`aspect-[88/107] overflow-hidden rounded-md border-2 ${selectedFrames.includes(frame.id) ? 'border-accent' : 'border-transparent'}`}>
-                                            <img src={frame.imageSrc} alt="Generated frame" className="w-full h-full object-cover" />
+                                        <div
+                                            className={`overflow-hidden rounded-md border-2 ${selectedFrames.includes(frame.id) ? 'border-accent' : 'border-transparent'}`}
+                                            style={{ aspectRatio: `${FRAME_CONFIG[frame.frameType].aspectRatio}` }}
+                                        >
+                                            <img src={frame.imageSrc} alt="Generated frame" className="w-full h-full object-contain" />
                                         </div>
                                     </div>
                                 ))}

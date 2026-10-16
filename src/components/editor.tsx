@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { FRAME_CONFIG, type FrameType } from "@/lib/constants";
+import { FRAME_CONFIG, IMAGE_FILTERS, type FrameType, type ImageFilter } from "@/lib/constants";
 import { Image as ImageIcon, RefreshCcw, ZoomIn, Move, Plus } from "lucide-react";
 import * as React from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -28,6 +28,8 @@ interface EditorProps {
   setZoom: (zoom: number) => void;
   position: { x: number; y: number };
   setPosition: (position: { x: number; y: number }) => void;
+  imageFilter: ImageFilter;
+  setImageFilter: (filter: ImageFilter) => void;
 }
 
 export default function Editor({
@@ -46,6 +48,8 @@ export default function Editor({
   setZoom,
   position,
   setPosition,
+  imageFilter,
+  setImageFilter,
 }: EditorProps) {
   const inputRef = React.useRef<HTMLInputElement>(null);
   const frameConfig = FRAME_CONFIG[activeFrameType];
@@ -56,6 +60,7 @@ export default function Editor({
     if (e.target.files && e.target.files[0]) {
       onImageUpload(e.target.files[0]);
     }
+    e.target.value = "";
   };
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -121,7 +126,7 @@ export default function Editor({
             >
                 <div className="absolute inset-0 flex flex-col bg-white" >
                     <div 
-                        className="flex-grow bg-gray-200 w-[92%] mx-auto mt-[4%] relative overflow-hidden rounded-sm"
+                        className="flex-grow min-h-0 bg-gray-200 w-[92%] mx-auto mt-[4%] relative overflow-hidden rounded-sm"
                         style={{
                             cursor: uploadedImage ? (isDragging ? 'grabbing' : 'grab') : 'pointer',
                         }}
@@ -132,16 +137,19 @@ export default function Editor({
                         onClick={() => !uploadedImage && inputRef.current?.click()}
                     >
                         {uploadedImage ? (
-                            <img
-                                src={uploadedImage}
-                                alt="upload preview"
-                                className="w-full h-full absolute top-0 left-0"
-                                style={{
-                                    transform: `scale(${zoom}) translate(${position.x}px, ${position.y}px)`,
-                                    objectFit: 'cover',
-                                    transition: isDragging ? 'none' : 'transform 0.1s ease-out',
-                                }}
-                            />
+                          <img
+                            src={uploadedImage}
+                            alt="Uploaded photo preview"
+                            draggable={false}
+                            className="absolute inset-0 h-full w-full select-none object-cover"
+                            style={{
+                              filter: IMAGE_FILTERS[imageFilter].value,
+                              objectPosition: 'center',
+                              transform: `translate(${position.x}px, ${position.y}px) scale(${zoom})`,
+                              transformOrigin: 'center center',
+                              transition: isDragging ? 'none' : 'transform 0.1s ease-out',
+                            }}
+                          />
                         ) : (
                             <div className="w-full h-full flex items-center justify-center text-center text-gray-500 p-4">
                                 <div onClick={() => inputRef.current?.click()}>
@@ -191,6 +199,23 @@ export default function Editor({
                         <RefreshCcw className="mr-2 h-4 w-4" />
                         Reset
                     </Button>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label className="text-muted-foreground">Color format</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(Object.keys(IMAGE_FILTERS) as ImageFilter[]).map((filter) => (
+                      <Button
+                        key={filter}
+                        type="button"
+                        variant={imageFilter === filter ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setImageFilter(filter)}
+                      >
+                        {IMAGE_FILTERS[filter].name}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="grid gap-2">

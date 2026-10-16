@@ -33,3 +33,28 @@ export const FRAME_CONFIG = {
 };
 
 export type FrameType = keyof typeof FRAME_CONFIG;
+
+export const IMAGE_FILTERS = {
+  original: {
+    name: "Original",
+    value: "none",
+  },
+  bw: {
+    name: "B&W",
+    value: "grayscale(1) contrast(1.08)",
+  },
+  sepia: {
+    name: "Sepia",
+    value: "sepia(0.85) saturate(0.9) contrast(1.05)",
+  },
+  vintage: {
+    name: "Vintage",
+    value: "sepia(0.35) saturate(1.25) contrast(1.08) brightness(0.96)",
+  },
+  cool: {
+    name: "Cool",
+    value: "saturate(0.85) hue-rotate(12deg) brightness(1.04)",
+  },
+} as const;
+
+export type ImageFilter = keyof typeof IMAGE_FILTERS;
